@@ -40,3 +40,21 @@ button.secondary { background: transparent; color: var(--accent); }
 .meta dt { font-size: .75rem; color: #7a7163; } .meta dd { margin: .15rem 0 0; }
 .actions { display: flex; gap: .8rem; margin-top: 1.5rem; }
 a { color: var(--accent); }
+h2 { font-weight: 600; font-size: 1.1rem; margin: 2rem 0 .5rem; padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+h3 { font-weight: 600; font-size: .95rem; margin: 1.4rem 0 .5rem; color: var(--accent); }
+.chip.warn { background: #f7e3d6; border-color: #c98a5e; }
+.dim { color: #8a8172; font-family: "IBM Plex Sans", sans-serif; font-size: .85rem; }
+.notice { padding: .7rem .9rem; border-left: 3px solid var(--accent); background: #fffdf8; font-family: "IBM Plex Sans", sans-serif; font-size: .9rem; }
+.notice.warn { border-left-color: #9b2c2c; background: #fdf3f0; color: #7c2d12; }
+button.small { margin-top: 0; padding: .35rem .7rem; font-size: .82rem; }
+button[disabled], select[disabled] { opacity: .45; cursor: not-allowed; }
+.inline-form, .merge-form { display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end; font-family: "IBM Plex Sans", sans-serif; }
+.field { margin: 0; }
+select { width: auto; min-width: 12rem; padding: .5rem .6rem; border: 1px solid var(--line); background: #fff; font-family: inherit; }
+.merge-form input[name="merge_key"] { width: 14rem; }
+.conflicts, .attempts { list-style: none; padding: 0; margin: 0; font-family: "IBM Plex Sans", sans-serif; }
+.conflicts li, .attempts li { border: 1px solid var(--line); background: #fffdf8; margin-bottom: .5rem; padding: .55rem .8rem; }
+.conflicts summary { cursor: pointer; }
+.conflict-body { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .8rem; margin-top: .6rem; }
+.conflict-body pre { margin: .2rem 0; white-space: pre-wrap; word-break: break-all; }
+pre { background: #fbf7ef; border: 1px solid var(--line); padding: .5rem; }

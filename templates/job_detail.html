@@ -6,12 +6,129 @@
 <dl class="meta">
   <div><dt>编码</dt><dd class="mono">{{ job.code }}</dd></div>
   <div><dt>状态</dt><dd><span class="chip">{{ job.status }}</span></dd></div>
-  <div><dt>源地址</dt><dd class="mono">{{ job.source_uri }}</dd></div>
-  <div><dt>已解析</dt><dd>{{ job.parsed }}</dd></div>
-  <div><dt>已入库</dt><dd>{{ job.landed }}</dd></div>
+  <div><dt>合并键</dt><dd class="mono">{% if job.merge_key %}{{ job.merge_key }}{% else %}<span class="dim">未设</span>{% endif %}</dd></div>
+  <div><dt>冲突策略</dt><dd>{% if job.conflict_policy %}<span class="chip">{{ job.conflict_policy }}</span>{% else %}<span class="dim">未定</span>{% endif %}
+    {% if job.policy_locked_today %}<span class="dim">· 当天已锁</span>{% endif %}</dd></div>
+  <div><dt>合并状态</dt><dd><span class="chip">{{ job.merge_status }}</span>{% if job.merge_owner %} · <span class="mono">{{ job.merge_owner }}</span>{% endif %}</dd></div>
+  <div><dt>落档</dt><dd>已入库 {{ job.landed }} 条</dd></div>
 </dl>
+
+{% if job.notice %}<p class="notice {% if job.notice_warn %}warn{% endif %}">{{ job.notice }}</p>{% endif %}
+
+<h2>双源</h2>
+<table class="grid sources">
+  <thead><tr><th>份</th><th>源地址</th><th>解析状态</th><th>条数</th><th></th></tr></thead>
+  <tbody>
+    <tr>
+      <td>主份</td>
+      <td class="mono">{{ job.primary_uri }}</td>
+      <td><span class="chip">{{ job.primary_status }}</span></td>
+      <td>{{ job.primary_count }}</td>
+      <td>
+        <form method="post" action="/jobs/{{ job.id }}/parse/primary/">{% csrf_token %}
+          <input type="hidden" name="merge_key" value="{{ job.merge_key }}" />
+          <button type="submit" class="small">解析主份</button>
+        </form>
+      </td>
+    </tr>
+    <tr>
+      <td>次份</td>
+      <td class="mono">{{ job.secondary_uri }}</td>
+      <td><span class="chip">{{ job.secondary_status }}</span></td>
+      <td>{{ job.secondary_count }}</td>
+      <td>
+        <form method="post" action="/jobs/{{ job.id }}/parse/secondary/">{% csrf_token %}
+          <button type="submit" class="small">解析次份</button>
+        </form>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>冲突策略</h2>
+<p class="hint">同键不同值时按锁定策略裁定；策略一经确定当天不得更换。</p>
+<form method="post" action="/jobs/{{ job.id }}/policy/" class="inline-form">
+  {% csrf_token %}
+  <select name="conflict_policy" {% if job.policy_locked_today %}disabled{% endif %}>
+    {% for opt in policy_choices %}
+      <option value="{{ opt.value }}" {% if job.conflict_policy == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="secondary small" {% if job.policy_locked_today %}disabled{% endif %}>锁定策略</button>
+</form>
+
+<h2>合并</h2>
+<p class="hint">两份都解析成功才可开跑；合并键空着禁止开跑；页面请求的处理须与锁定策略一致。</p>
+<form method="post" action="/jobs/{{ job.id }}/merge/" class="merge-form">
+  {% csrf_token %}
+  <label class="field">合并键
+    <input name="merge_key" list="key-options" value="{{ job.merge_key }}" placeholder="例如 id" />
+    <datalist id="key-options">
+      {% for key in key_options %}<option value="{{ key }}"></option>{% endfor %}
+    </datalist>
+  </label>
+  <label class="field">处理
+    <select name="conflict_policy">
+      {% for opt in policy_choices %}
+        <option value="{{ opt.value }}" {% if job.conflict_policy == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">执行合并</button>
+</form>
+
+<h2>合并结果</h2>
+<dl class="meta">
+  <div><dt>合并条数</dt><dd>{{ job.merged_count }}</dd></div>
+  <div><dt>冲突数</dt><dd>{% if job.conflict_count %}<span class="chip warn">{{ job.conflict_count }}</span>{% else %}0{% endif %}</dd></div>
+</dl>
+
+{% if conflicts %}
+<h3>冲突匣</h3>
+<ul class="conflicts">
+  {% for c in conflicts %}
+  <li>
+    <details>
+      <summary><span class="mono">{{ c.key }}</span> · 按「{{ c.resolution }}」处理</summary>
+      <div class="conflict-body">
+        <div><dt>主份</dt><pre class="mono">{{ c.primary_value }}</pre></div>
+        <div><dt>次份</dt><pre class="mono">{{ c.secondary_value }}</pre></div>
+        <p class="hint">{{ c.annotation }}</p>
+      </div>
+    </details>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="dim">冲突匣为空。</p>
+{% endif %}
+
+{% if merged_rows %}
+<h3>合并行</h3>
+<table class="grid">
+  <thead><tr><th>合并键</th><th>内容</th><th>裁定</th></tr></thead>
+  <tbody>
+  {% for row in merged_rows %}
+    <tr>
+      <td class="mono">{{ row.key }}</td>
+      <td class="mono">{{ row.content }}</td>
+      <td>{{ row.resolution|default:"—" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if lost_attempts %}
+<h3>合并争用失败</h3>
+<ul class="attempts">
+  {% for a in lost_attempts %}
+  <li><span class="chip warn">{{ a.outcome }}</span> <span class="mono">{{ a.user }}</span> · {{ a.detail }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
 <div class="actions">
-  <form method="post" action="/jobs/{{ job.id }}/parse/">{% csrf_token %}<button type="submit">执行解析</button></form>
-  <form method="post" action="/jobs/{{ job.id }}/land/">{% csrf_token %}<button type="submit" class="secondary">执行入库</button></form>
+  <form method="post" action="/jobs/{{ job.id }}/land/">{% csrf_token %}<button type="submit" class="secondary">执行落档</button></form>
 </div>
 {% endblock %}
